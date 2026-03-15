@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+    <meta charset="UTF-8">
+    <title>הרפתקת חדר הבריחה הגדול!</title>
+    <style>
+        body { 
+            background: #1a252c; 
+            color: #fff; 
+            text-align: center; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            overflow-x: hidden;
+        }
+        #game-container { 
+            background: #fdf6e3; 
+            padding: 20px; 
+            border-radius: 15px; 
+            max-width: 800px; 
+            width: 90%; 
+            color: #000; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+        img { 
+            max-width: 100%; 
+            border: 4px solid #b8860b; 
+            border-radius: 10px; 
+            margin-bottom: 20px; 
+        }
+        .controls { 
+            display: flex; 
+            justify-content: center; 
+            gap: 15px; 
+            margin-top: 10px; 
+        }
+        input { 
+            font-size: 22px; 
+            padding: 10px; 
+            width: 200px; 
+            text-align: center; 
+            border: 2px solid #b8860b; 
+            border-radius: 8px; 
+        }
+        button { 
+            font-size: 22px; 
+            padding: 10px 25px; 
+            background: #b8860b; 
+            color: #fff; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: bold;
+        }
+        button:hover { 
+            background: #daa520; 
+        }
+        #message { 
+            color: #d35400; 
+            font-size: 22px; 
+            font-weight: bold; 
+            margin-top: 15px; 
+            min-height: 30px; 
+        }
+        
+        #success-overlay {
+            position: absolute;
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%;
+            background: rgba(253, 246, 227, 0.95);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+        .star-icon {
+            font-size: 100px;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        .success-text {
+            color: #27ae60;
+            font-size: 40px;
+            font-weight: bold;
+            margin-top: 15px;
+            animation: fadeIn 0.4s ease-in forwards;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="success-overlay">
+            <div class="star-icon">⭐</div>
+            <div class="success-text">מעולה!</div>
+        </div>
+
+        <img id="slide-image" src="1.jpg" alt="משחק חדר הבריחה">
+        <div id="controls" class="controls"></div>
+        <div id="message"></div>
+    </div>
+
+    <script>
+        const slides = [
+            // --- חדר 1: המסע אל תיבת האוצר (תמונות 1-8) ---
+            { image: '1.jpg', type: 'start', buttonText: 'מתחילים!' },
+            { image: '2.jpg', type: 'continue', buttonText: 'הבנתי, בואו נתחיל את החידות!' },
+            { image: '3.jpg', type: 'puzzle', answer: '3', hint: 'נסו שוב! באיזו אות מתחילות המילים גלידה, גמל וג\'ירפה?' },
+            { image: '4.jpg', type: 'puzzle', answer: '9', hint: 'לא מדויק. חשבו: 5 פרחים אדומים, פחות 2 פרחים נבולים, ועוד 6 פרחים כחולים...' },
+            { image: '5.jpg', type: 'puzzle', answer: '5', hint: 'כמעט! כמה פינות יש למשולש? אל תשכחו להוסיף 2.' },
+            { image: '6.jpg', type: 'puzzle', answer: '2', hint: 'אופס! לפיל יש 4 רגליים. כמה זה 4 פחות 2?' },
+            { image: '7.jpg', type: 'final', answer: '3952', hint: 'הקוד שגוי! התיבה לא נפתחת. בדקו שוב את המספרים.' },
+            { image: '8.jpg', type: 'continue', buttonText: 'מעולה! לחצו למעבר אל החדר הסודי הבא ➡' },
+
+            // --- חדר 2: חדר הבריחה של הקוסם (תמונות 9-21) ---
+            { image: '9.jpg', type: 'continue', buttonText: 'היכנסו לחדר!' },
+            { image: '10.jpg', type: 'puzzle', answer: '3', hint: 'נסו למחוא כפיים לפי ההברות במילה שו-קו-לד.' },
+            { image: '11.jpg', type: 'continue', buttonText: 'מעולה! לחידה הבאה' }, 
+            { image: '12.jpg', type: 'puzzle', answer: '6', hint: 'חפשו היטב את כל העיגולים המלאים: עיניים, אף, כפתורים...' },
+            { image: '13.jpg', type: 'continue', buttonText: 'מעולה! לחידה הבאה' }, 
+            { image: '14.jpg', type: 'puzzle', answer: '2', hint: 'רק 2 פריטים מתוך התמונה מתאימים לעונת הקיץ. מהם?' },
+            { image: '15.jpg', type: 'continue', buttonText: 'מעולה! לחידה הבאה' }, 
+            { image: '16.jpg', type: 'puzzle', answer: '2', hint: 'האות החסרה במילה תפוח היא ת\'. כמה "רגליים" שיורדות למטה יש לה?' },
+            { image: '17.jpg', type: 'continue', buttonText: 'מעולה! לחידה הבאה' }, 
+            { image: '18.jpg', type: 'puzzle', answer: '5', hint: 'ספרו אך ורק את הפרפרים שצבעם צהוב.' },
+            { image: '19.jpg', type: 'continue', buttonText: 'המשך אל הדלת הסודית ➡' }, 
+            { image: '9.jpg', type: 'final', answer: '36225', hint: 'הקוד שגוי! הזינו את כל 5 הספרות שאספתם כדי לפתוח את הדלת.' }, 
+            { image: '20.jpg', type: 'continue', buttonText: 'כל הכבוד! למפת המיומנויות' }, 
+            { image: '21.jpg', type: 'continue', buttonText: 'מוכנים? לחצו למעבר לחדר הכספת ➡' }, 
+
+            // --- חדר 3: חדר הבריחה - הכספת (תמונות 22-32) ---
+            // התיקון כאן: תמונה 22 היא כבר החידה הראשונה!
+            { image: '22.jpg', type: 'puzzle', answer: '4', hint: 'המילה שמתחרזת עם חיפושית היא קשית. כמה אותיות יש במילה קשית?' },
+            { image: '23.jpg', type: 'continue', buttonText: 'מעולה! לחידה הבאה' }, 
+            { image: '24.jpg', type: 'puzzle', answer: '4', hint: 'נסו שוב. ספרו בעדינות את כל השפיצים (הקודקודים) של הריבוע.' },
+            { image: '25.jpg', type: 'continue', buttonText: 'מעולה! לחידה הבאה' }, 
+            { image: '26.jpg', type: 'puzzle', answer: '9', hint: 'המספרים קופצים ב-2 (1, 3, 5, 7). מה יבוא אחרי 7?' },
+            { image: '27.jpg', type: 'continue', buttonText: 'מעולה! לחידה הבאה' }, 
+            { image: '28.jpg', type: 'puzzle', answer: '2', hint: 'ההיפך מיום הוא לילה. כמה פעמים האות ל\' מופיעה במילה לילה?' },
+            { image: '29.jpg', type: 'continue', buttonText: 'המשך אל הכספת ➡' }, 
+            { image: '30.jpg', type: 'final', answer: '4492', hint: 'קוד שגוי! הזינו את 4 הספרות שאספתם מתחילת חדר הכספת.' }, 
+            { image: '31.jpg', type: 'continue', buttonText: 'לסיום ומפת המיומנויות' }, 
+            { image: '32.jpg', type: 'end', buttonText: 'סיום המשחק! שחקו שוב' } 
+        ];
+
+        let currentSlide = 0;
+        let playerName = "";
+        
+        const imageEl = document.getElementById('slide-image');
+        const controlsEl = document.getElementById('controls');
+        const messageEl = document.getElementById('message');
+        const successOverlay = document.getElementById('success-overlay');
+
+        function throwConfetti() {
+            const colors = ['#fce18a', '#ff726d', '#b48def', '#f4306d', '#42e2b8', '#3498db', '#f1c40f'];
+            for(let i = 0; i < 150; i++) {
+                const conf = document.createElement('div');
+                conf.style.position = 'fixed';
+                conf.style.width = (Math.random() * 10 + 5) + 'px';
+                conf.style.height = (Math.random() * 10 + 5) + 'px';
+                conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                conf.style.left = Math.random() * 100 + 'vw';
+                conf.style.top = '-20px';
+                conf.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                conf.style.zIndex = '9999';
+                conf.style.pointerEvents = 'none';
+                document.body.appendChild(conf);
+
+                const duration = Math.random() * 3 + 2;
+                conf.animate([
+                    { transform: 'translate3d(0,0,0) rotate(0deg)', opacity: 1 },
+                    { transform: `translate3d(${Math.random()*300 - 150}px, 100vh, 0) rotate(${Math.random()*720}deg)`, opacity: 0 }
+                ], {
+                    duration: duration * 1000,
+                    easing: 'cubic-bezier(.37,0,.63,1)',
+                    fill: 'forwards'
+                });
+
+                setTimeout(() => conf.remove(), duration * 1000);
+            }
+        }
+
+        function renderSlide() {
+            const slide = slides[currentSlide];
+            imageEl.src = slide.image;
+            messageEl.innerHTML = '';
+            controlsEl.innerHTML = '';
+            successOverlay.style.display = 'none'; 
+
+            if (slide.type === 'start') {
+                const wrapper = document.createElement('div');
+                wrapper.style.display = 'flex';
+                wrapper.style.flexDirection = 'column';
+                wrapper.style.alignItems = 'center';
+
+                const nameInput = document.createElement('input');
+                nameInput.type = 'text';
+                nameInput.placeholder = 'איך קוראים לך?';
+                nameInput.id = 'player-name';
+                nameInput.style.marginBottom = '15px';
+
+                const btn = document.createElement('button');
+                btn.textContent = slide.buttonText;
+                btn.onclick = function() {
+                    playerName = document.getElementById('player-name').value.trim();
+                    currentSlide++;
+                    renderSlide();
+                };
+
+                wrapper.appendChild(nameInput);
+                wrapper.appendChild(btn);
+                controlsEl.appendChild(wrapper);
+                
+                setTimeout(function() { nameInput.focus(); }, 100);
+            } 
+            else if (slide.type === 'end') {
+                throwConfetti();
+
+                if (playerName !== "") {
+                    messageEl.innerHTML = `<span style="font-size: 40px; color: #27ae60;">כל הכבוד, ${playerName}! 🏆</span>`;
+                } else {
+                    messageEl.innerHTML = `<span style="font-size: 40px; color: #27ae60;">כל הכבוד! אלופי החידות! 🏆</span>`;
+                }
+
+                const btn = document.createElement('button');
+                btn.textContent = slide.buttonText;
+                btn.onclick = function() {
+                    currentSlide = 0; 
+                    playerName = ""; 
+                    renderSlide();
+                };
+                controlsEl.appendChild(btn);
+            }
+            else if (slide.type === 'continue') {
+                const btn = document.createElement('button');
+                btn.textContent = slide.buttonText;
+                btn.onclick = function() {
+                    currentSlide++;
+                    renderSlide();
+                };
+                controlsEl.appendChild(btn);
+            } 
+            else {
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.placeholder = slide.type === 'final' ? 'הקוד הסודי המלא' : 'תשובה';
+                input.id = 'answer-input';
+                
+                const btn = document.createElement('button');
+                btn.textContent = 'בדיקה';
+                btn.onclick = checkAnswer;
+
+                controlsEl.appendChild(input);
+                controlsEl.appendChild(btn);
+
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') checkAnswer();
+                });
+                
+                setTimeout(function() { input.focus(); }, 100);
+            }
+        }
+
+        function checkAnswer() {
+            const slide = slides[currentSlide];
+            const inputVal = document.getElementById('answer-input').value;
+
+            if (inputVal === slide.answer) {
+                successOverlay.style.display = 'flex';
+                
+                setTimeout(function() {
+                    currentSlide++;
+                    renderSlide();
+                }, 800);
+
+            } else {
+                messageEl.textContent = slide.hint;
+            }
+        }
+
+        window.onload = renderSlide;
+    </script>
+</body>
+</html>
